@@ -76,11 +76,17 @@ def check_all_forcejoins(user_id):
             return False
     return True
     
-# ================ START HANDLER =================
+# ================ START HANDLER 
+from datetime import datetime
+
 @bot.message_handler(commands=['start'])
 def start_handler(msg):
     uid = msg.from_user.id
     chat_id = msg.chat.id
+    name = msg.from_user.first_name
+    username = f"@{msg.from_user.username}" if msg.from_user.username else "❌ No Username"
+    time_now = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+
     add_user(uid)
 
     # ✅ If in group, ask to start in DM
@@ -98,39 +104,56 @@ def start_handler(msg):
     # ✅ Force Join Check
     if not check_all_forcejoins(uid):
         kb = types.InlineKeyboardMarkup()
-        for link in get_forcejoin():
-            kb.add(types.InlineKeyboardButton("📌 Join", url=link))
+        kb.add(types.InlineKeyboardButton("📌 Join Channel", url="https://t.me/Fingercorn"))
+        kb.add(types.InlineKeyboardButton("💬 Group Chat", url="https://t.me/+pR7zdn3FXn9lZGY9"))
         kb.add(types.InlineKeyboardButton("✅ I Joined", callback_data="check_join"))
-        bot.send_message(chat_id, "📢 Please join all required channels to continue:", reply_markup=kb)
+        bot.send_message(chat_id, "📢 *Please join the required channel to continue:*", reply_markup=kb, parse_mode="Markdown")
         return
 
-    # ✅ Main Menu (Always shown after verification)
+    # ✅ Main Welcome Menu
     kb = types.InlineKeyboardMarkup()
-    for name, url in get_buttons():
-        kb.add(types.InlineKeyboardButton(name, url=url))
+    kb.add(types.InlineKeyboardButton("📌 Channel", url="https://t.me/Fingercorn"))
+    kb.add(types.InlineKeyboardButton("💬 Group Chat", url="https://t.me/+pR7zdn3FXn9lZGY9"))
 
-    # Add default buttons if no custom buttons exist
-    kb.add(types.InlineKeyboardButton("📌 𝐂ʜᴀɴɴᴇʟ", url="https://t.me/Fingercorn"))
-    kb.add(types.InlineKeyboardButton("💬 𝐆ʀᴏᴜᴘ", url="https://t.me/+pR7zdn3FXn9lZGY9"))
+    welcome_text = (
+        "✅ *Welcome to IG Reset Link Sender Bot!* ✅\n\n"
+        "Send Instagram password reset links easily and securely!\n\n"
+        "Use /help to know your commands.\n\n"
+        "⚠️ *Note:* Use responsibly. Spamming may lead to restrictions."
+    )
 
-    bot.send_message(chat_id, "✅ Welcome! Use the buttons below:", reply_markup=kb)
+    bot.send_message(chat_id, welcome_text, reply_markup=kb, parse_mode="Markdown")
+
+    # ✅ Notify Owner
+    notify_text = (
+        f"👤 *New User Joined!*\n\n"
+        f"📛 Name: {name}\n"
+        f"🔗 Username: {username}\n"
+        f"🆔 ID: `{uid}`\n"
+        f"⏰ Time: {time_now}"
+    )
+    notify_kb = types.InlineKeyboardMarkup()
+    notify_kb.add(types.InlineKeyboardButton("🔍 OPEN CHAT", url=f"tg://openmessage?user_id={uid}"))
+    bot.send_message(OWNER_ID, notify_text, reply_markup=notify_kb, parse_mode="Markdown")
 
 
 # ✅ Callback for "I Joined" Button
 @bot.callback_query_handler(func=lambda call: call.data == "check_join")
 def joined_btn(call):
     if not check_all_forcejoins(call.from_user.id):
-        bot.answer_callback_query(call.id, "❌ You haven't joined all channels yet!")
+        bot.answer_callback_query(call.id, "❌ You haven't joined the channel yet!")
     else:
         bot.answer_callback_query(call.id, "✅ Verified!")
         kb = types.InlineKeyboardMarkup()
-        for name, url in get_buttons():
-            kb.add(types.InlineKeyboardButton(name, url=url))
-        kb.add(types.InlineKeyboardButton("📌 𝐂ʜᴀɴɴᴇʟ", url="https://t.me/Fingercorn"))
-        kb.add(types.InlineKeyboardButton("💬 𝐆ʀᴏᴜᴘ", url="https://t.me/+pR7zdn3FXn9lZGY9"))
-        bot.edit_message_text("✅ Verified! You can now use the bot.", call.message.chat.id, call.message.message_id, reply_markup=kb)
-        # Keep buttons, don't remove them
-
+        kb.add(types.InlineKeyboardButton("📌 Channel", url="https://t.me/Fingercorn"))
+        kb.add(types.InlineKeyboardButton("💬 Group Chat", url="https://t.me/+pR7zdn3FXn9lZGY9"))
+        bot.edit_message_text(
+            "✅ Verified! You can now use the bot.",
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=kb
+    )
+                                  
 # ================ WAMPHIRE TOGGLE =================
 @bot.message_handler(func=lambda m: m.text and m.text.lower() in ["wamphire chudai on", "wamphire chudai off"])
 def wamphire_toggle(msg):
