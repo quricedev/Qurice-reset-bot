@@ -10,10 +10,10 @@ from threading import Thread
 from flask import Flask
 
 # ================= CONFIG =================
-TOKEN = "YOUR_BOT_TOKEN"  # Replace with your bot token
+TOKEN = "7288924933:AAFeIz94cL2M8LkN_ddX6nO73qmL6kiRj8I"  # Replace with your bot token
 OWNER_ID = 5781973054
 BOT_USERNAME = "IGrstlinkBOT"
-RESET_DELAY_MIN = 5
+RESET_DELAY_MIN = 10
 RESET_DELAY_MAX = 12
 
 # ================= INIT BOT =================
