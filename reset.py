@@ -14,7 +14,7 @@ session.headers.update({"User-Agent": "Instagram 150.0.0.0 Android"})
 TOKEN = "7288924933:AAFeIz94cL2M8LkN_ddX6nO73qmL6kiRj8I"  # Replace with your bot token
 OWNER_ID = 5781973054     # Replace with your Telegram ID
 BOT_USERNAME = "IGrstlinkBOT"  # Without @
-RESET_DELAY = 10  # User wait simulation
+RESET_DELAY = 2  # User wait simulation
 COOLDOWN = 10  # Prevent spam
 START_TIME = time.time()
 
@@ -108,8 +108,8 @@ def start_cmd(msg):
     db.commit()
 
     kb = types.InlineKeyboardMarkup(row_width=2)
-    kb.add(types.InlineKeyboardButton("📢 Channel", url="https://t.me/YourChannel"),
-           types.InlineKeyboardButton("💬 Group", url="https://t.me/YourGroup"))
+    kb.add(types.InlineKeyboardButton("📢 Channel", url="https://t.me/fingercorn"),
+           types.InlineKeyboardButton("💬 Group", url="https://t.me/+pR7zdn3FXn9lZGY9"))
     kb.add(types.InlineKeyboardButton("✅ Verify", callback_data="check_join"))
     for btn_name, url in get_buttons():
         kb.add(types.InlineKeyboardButton(btn_name, url=url))
