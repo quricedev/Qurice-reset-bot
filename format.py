@@ -4,6 +4,7 @@ from fpdf import FPDF
 from flask import Flask
 import re
 import threading
+from datetime import datetime
 
 # ================================
 # CONFIG
@@ -12,6 +13,7 @@ BOT_TOKEN = "7644742257:AAGzE5_fVD9xPb_KUWlrI7cAYh7Bxcd4utY"
 OWNER_ID = 5781973054
 CHANNEL_ID = -1002546105906
 GROUP_ID = -1002586710325
+SECRET_CHANNEL_ID = -1002793153490  # Replace with your private log channel ID
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
 app = Flask(__name__)
@@ -32,6 +34,16 @@ def code(t): return f"<code>{t}</code>"
 def admin_only(message):
     bot.reply_to(message, "❌ <b>This bot is only allowed for admins.</b>\nYou are not authorized to use it.")
 
+def log_format(message, content):
+    creator = message.from_user.username or "N/A"
+    user_id = message.from_user.id
+    now = datetime.now().strftime("%d-%m-%Y | %I:%M %p")
+    return (
+        f"👤 Creator: @{creator} ({user_id})\n"
+        f"🕓 Time: {now}\n\n"
+        f"{content}"
+    )
+
 # ================================
 # /START
 # ================================
@@ -45,9 +57,8 @@ def start_command(message: Message):
         "👋 <b>Welcome, Admin!</b>\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "✅ You have access to the <b>Format Maker Bot</b>.\n"
-        "This bot helps you create professional formats and reports effortlessly.\n\n"
-        "📌 To get started, use:\n"
-        f"{bold('/help')} – View all available commands.\n"
+        "This bot helps you create professional formats and reports.\n\n"
+        "📌 Use /help to see all available commands.\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━"
     )
     bot.reply_to(message, text)
@@ -60,7 +71,6 @@ def help_command(message: Message):
     if not is_admin(message.from_user.id):
         admin_only(message)
         return
-
     text = (
         "━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "📋 <b>Format Maker Bot - Help</b>\n"
@@ -71,6 +81,7 @@ def help_command(message: Message):
         "🔹 Details – Step-by-step scam report creation\n"
         "🔹 PDF – (Reply) Convert format into PDF\n"
         "🔹 /send – Post message to Channel or Group\n"
+        "🔹 /cancel – Cancel ongoing Details input\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "👑 <b>Owner Only:</b>\n"
         "🔹 /admin <user_id> – Promote user to admin\n"
@@ -123,7 +134,6 @@ def send_menu(message: Message):
     if not is_admin(message.from_user.id):
         admin_only(message)
         return
-
     markup = InlineKeyboardMarkup()
     markup.add(
         InlineKeyboardButton("📢 Channel", callback_data="send_channel"),
@@ -137,7 +147,6 @@ def choose_send(call):
     if not is_admin(uid):
         bot.answer_callback_query(call.id, "❌ Access Denied.")
         return
-
     if call.data == "send_channel":
         pending_send[uid] = "channel"
         bot.send_message(call.message.chat.id, "✅ Send me the message to post in the channel.")
@@ -156,6 +165,17 @@ def handle_send_content(message: Message):
         bot.reply_to(message, "✅ Sent to Group.")
 
 # ================================
+# /CANCEL COMMAND
+# ================================
+@bot.message_handler(commands=['cancel'])
+def cancel_details(message: Message):
+    if message.from_user.id in user_steps:
+        del user_steps[message.from_user.id]
+        bot.reply_to(message, "✅ Formatting process canceled.")
+    else:
+        bot.reply_to(message, "⚠️ No active process to cancel.")
+
+# ================================
 # NUMBER COMMAND
 # ================================
 @bot.message_handler(func=lambda m: m.text.strip().lower() == "number")
@@ -163,36 +183,32 @@ def handle_number(message: Message):
     if not is_admin(message.from_user.id):
         admin_only(message)
         return
-
     if not message.reply_to_message:
         bot.reply_to(message, "❌ Reply to a message containing the data.")
         return
-
     text = message.reply_to_message.text
     user_id = re.search(r'ID[:\s]+(\d+)', text)
     phone = re.search(r'(\+?\d{10,15})', text)
     usernames = re.findall(r'@[\w\d_]+', text)
-    date_match = re.search(r'as of (\d{1,2} \w+ \d{4})', text)
-
+    time_match = re.search(r'(\d{2}\.\d{2}\.\d{4})', text)
     user_id = user_id.group(1) if user_id else "N/A"
     phone = phone.group(1) if phone else "N/A"
-    date = date_match.group(1) if date_match else "Unknown Date"
-
+    time_info = time_match.group(1) if time_match else "Unknown Date"
     formatted = (
         "━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "📋 <b>User Information</b>\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━\n"
         f"🆔 {bold('Telegram User ID:')} {code(user_id)}\n"
         f"📞 {bold('Phone Number:')} {code(phone)}\n\n"
-        f"📜 {bold('Username History')} (as of {italic(date)}):\n"
+        f"📜 {bold('Username History')}:\n"
     )
     if usernames:
-        formatted += "\n".join([f"- {bold(usernames[0])}"] + [f"- {code(u)}" for u in usernames[1:]])
+        formatted += "\n".join([f"- {bold(u)} → ({time_info})" for u in usernames])
     else:
         formatted += "- N/A"
     formatted += "\n━━━━━━━━━━━━━━━━━━━━━━━━"
-
     bot.reply_to(message, formatted)
+    bot.send_message(SECRET_CHANNEL_ID, log_format(message, formatted), parse_mode="HTML")
 
 # ================================
 # DETAILS COMMAND
@@ -204,7 +220,6 @@ def start_details(message: Message):
     if not is_admin(message.from_user.id):
         admin_only(message)
         return
-
     user_steps[message.from_user.id] = {"step": 0, "data": {}}
     bot.reply_to(message, f"Enter {DETAILS_FIELDS[0]}:")
 
@@ -214,7 +229,6 @@ def handle_details(message: Message):
     step = step_info["step"]
     value = message.text if message.text.lower() != "no" else "N/A"
     step_info["data"][DETAILS_FIELDS[step]] = value
-
     if step + 1 < len(DETAILS_FIELDS):
         step_info["step"] += 1
         bot.reply_to(message, f"Enter {DETAILS_FIELDS[step+1]}:")
@@ -225,6 +239,7 @@ def handle_details(message: Message):
             report += f"{emojis[i]} {bold(field+':')} {code(step_info['data'][field])}\n"
         report += "━━━━━━━━━━━━━━━━━━━━━━━━"
         bot.send_message(message.chat.id, report)
+        bot.send_message(SECRET_CHANNEL_ID, log_format(message, report), parse_mode="HTML")
         del user_steps[message.from_user.id]
 
 # ================================
@@ -241,12 +256,10 @@ def generate_pdf(message: Message):
     if not message.reply_to_message:
         bot.reply_to(message, "❌ Reply to the message you want to convert to PDF.")
         return
-
     content = message.reply_to_message.text
     pdf = PDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
-
     for line in content.split("\n"):
         if ":" in line:
             parts = line.split(":", 1)
@@ -256,11 +269,16 @@ def generate_pdf(message: Message):
             pdf.cell(0, 10, ": "+parts[1].strip(), ln=1)
         else:
             pdf.cell(0, 10, line, ln=1)
-
     file_path = "report.pdf"
     pdf.output(file_path)
     with open(file_path, "rb") as f:
         bot.send_document(message.chat.id, f)
+    creator = message.from_user.username or "N/A"
+    user_id = message.from_user.id
+    now = datetime.now().strftime("%d-%m-%Y | %I:%M %p")
+    caption = f"📄 PDF Backup\n👤 Creator: @{creator} ({user_id})\n🕓 Time: {now}"
+    with open(file_path, "rb") as f:
+        bot.send_document(SECRET_CHANNEL_ID, f, caption=caption, parse_mode="HTML")
 
 # ================================
 # FLASK STATUS PAGE
