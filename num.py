@@ -16,7 +16,6 @@ MONGO_URL = os.getenv("MONGO_URL")
 OWNER_ID = int(os.getenv("OWNER_ID", "123456"))
 
 bot = telebot.TeleBot(BOT_TOKEN)
-app = Flask(__name__)
 
 client = MongoClient(MONGO_URL)
 db = client['tginfo']
