@@ -121,48 +121,57 @@ class InstagramReporter:
         self.uid = uuid.uuid4()
         self.cookie = secrets.token_hex(8)*2
 
-    def login(self, username, password):
-        url = 'https://i.instagram.com/api/v1/accounts/login/'
+ def login(self, username, password):
+    try:
+        pre_req = self.r.get("https://i.instagram.com/api/v1/accounts/login/")
+        if "csrftoken" in pre_req.cookies:
+            csrf_token = pre_req.cookies["csrftoken"]
+        else:
+            csrf_token = "missing"
+
+        device_id = str(uuid.uuid4())
+        uid = str(uuid.uuid4())
+        time_stamp = int(datetime.now().timestamp())
+
+        enc_password = f"#PWD_INSTAGRAM:0:{time_stamp}:{password}"
+
+        url = "https://i.instagram.com/api/v1/accounts/login/"
         headers = {
-            'User-Agent': 'Instagram 113.0.0.39.122 Android (24/5.0; 515dpi; 1440x2416; huawei/google; Nexus 6P; angler; angler; en_US)',
+            "User-Agent": "Instagram 113.0.0.39.122 Android (24/5.0; 515dpi; 1440x2416; huawei/google; Nexus 6P; angler; angler; en_US)",
             "Accept": "*/*",
             "Accept-Encoding": "gzip, deflate",
             "Accept-Language": "en-US",
             "X-IG-Capabilities": "3brTvw==",
             "X-IG-Connection-Type": "WIFI",
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            'Host': 'i.instagram.com',
-            'Connection': 'keep-alive'
-        }
-        
-        data = {
-            'uuid': self.uid,
-            'password': password,
-            'username': username,
-            'device_id': self.uid,
-            'from_reg': 'false',
-            '_csrftoken': 'missing',
-            'login_attempt_countn': '0'
+            "Host": "i.instagram.com",
+            "Connection": "keep-alive"
         }
 
+        data = {
+            "uuid": uid,
+            "password": enc_password,
+            "username": username,
+            "device_id": device_id,
+            "from_reg": "false",
+            "_csrftoken": csrf_token,
+            "login_attempt_count": "0"
+        }
         response = self.r.post(url, headers=headers, data=data)
-        cookies = response.cookies
-        cookie_jar = cookies.get_dict()
-        
         try:
-            csrf_token = cookie_jar['csrftoken']
+            data_json = response.json()
         except:
-            csrf_token = self.cookie
-            
-        if 'logged_in_user' in response.text:
-            self.r.headers.update({'X-CSRFToken': csrf_token})
+            data_json = {"raw": response.text}
+        if "logged_in_user" in response.text:
             return True, "Login successful"
-        elif 'challenge_required' in response.text:
-            return False, "Account is secure - challenge required"
-        elif 'two_factor_required' in response.text:
-            return False, "Two factor authentication required"
+        elif "challenge_required" in response.text:
+            return False, f"Challenge required: {data_json}"
+        elif "two_factor_required" in response.text:
+            return False, f"Two-factor authentication required: {data_json}"
         else:
-            return False, "Login failed - check credentials"
+            return False, f"Login failed: {data_json}"
+    except Exception as e:
+        return False, f"Exception: {str(e)}"
 
     def report_account(self, target_username, report_type, count, sleep_time):
         try:
