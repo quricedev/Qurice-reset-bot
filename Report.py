@@ -47,12 +47,6 @@ FORCE_JOIN_CHANNELS = [
         "link": "https://t.me/+TZhXQn08a5tmYTQ9",
         "name": "#𝐌ᴀʀᴋᴇᴛ 𝐇ᴜʙ",
         "type": "private_group"
-    },
-    {
-        "id": -1002535054786,
-        "link": "https://t.me/+lwHNj7yb0c00NTA1",
-        "name": "𝗥𝗔𝗭𝗔 𝗣𝗬 - 𝗧𝗢𝗢𝗟𝗦",
-        "type": "private_channel"
     }
 ]
 
