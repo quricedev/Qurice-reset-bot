@@ -52,24 +52,10 @@ FORCE_JOIN_CHANNELS = [
         "link": "https://t.me/+xWHvKPQfwsU5OGRl",
         "name": "#𝐌ᴀʀᴋᴇᴛ 𝐇ᴜʙ",
         "type": "private_group"
-    },
-    {
-    "id": -1002545843201,
-    "link": "https://t.me/+1ZjsfDbP3Dc5NDc9",
-    "name": "QR NOTIFYER",
-    "type": "private_channel"
     }
     
 ]
 
-NOTIFICATION_CHANNEL = [
-    {
-    "id": -1002545843201,
-    "link": "https://t.me/+1ZjsfDbP3Dc5NDc9",
-    "name": "QR NOTIFYER",
-    "type": "private_channel"
-    }
-]
 
 app = Flask(__name__)
 
