@@ -154,6 +154,18 @@ def generate_qr(upi_id, amount, bg_file_id=None):
     output.seek(0)
     return output
 
+def notify_qr_channel(user, amount):
+    text = (
+        f"💳 New QR Generated\n"
+        f"👤 User: {user.get('first_name')} (@{user.get('username')})\n"
+        f"🆔 ID: {user.get('user_id')}\n"
+        f"💰 Amount: ₹{amount}"
+    )
+    try:
+        for ch in NOTIFICATION_CHANNEL:
+            bot.send_message(ch["id"], text)
+    except Exception as e:
+        print(f"Failed to send QR notification to channel: {e}")
 
 def notify_admin_new_user(user):
     text = (
@@ -244,7 +256,7 @@ def qr_handler(message):
         bot.reply_to(message, "🚫 You are banned from using this bot.")
         return
 
-
+    # Force join check
     ok, markup = check_force_join(message.from_user.id)
     if not ok:
         bot.send_message(
@@ -254,6 +266,7 @@ def qr_handler(message):
         )
         return
 
+    # Cooldown check (premium users skip)
     if check_cooldown(user):
         last_time = user.get("last_qr_time")
         remaining = int(COOLDOWN_FREE - (datetime.datetime.utcnow() - last_time).total_seconds())
@@ -264,7 +277,7 @@ def qr_handler(message):
         )
         return
 
-
+    # Daily limit check
     if check_daily_limit(user):
         markup = types.InlineKeyboardMarkup()
         markup.add(
@@ -277,16 +290,18 @@ def qr_handler(message):
         )
         return
 
-
+    # Determine background: user's custom or global
     bg_file = user.get("bg_file_id") or get_global_bg()
     qr_img = generate_qr(user["upi_id"], amount, bg_file)
 
+    # Send QR
     bot.send_photo(
         message.chat.id,
         qr_img,
         caption=f"💳 QR for ₹{amount}\n\n📲 Scan in any UPI app to pay"
     )
 
+    # Update stats
     users_col.update_one(
         {"user_id": user["user_id"]},
         {"$inc": {"daily_count": 1, "total_qr_count": 1},
@@ -294,12 +309,15 @@ def qr_handler(message):
     )
     log_qr_generation(user["user_id"], amount)
 
+    # Remaining generations message for free users
     if not is_premium(user):
         remaining = DAILY_LIMIT_FREE - (user.get("daily_count", 0) + 1)
+        remaining = max(0, remaining)  # prevent negative
         bot.send_message(
             message.chat.id,
             f"📊 You have {remaining} QR generation(s) left for today."
         )
+
 
 @bot.message_handler(commands=['resetupi'])
 def reset_upi(message):
