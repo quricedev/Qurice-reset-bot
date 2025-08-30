@@ -29,7 +29,6 @@ DAILY_LIMIT_FREE = 5
 COOLDOWN_FREE = 10 * 60  
 
 FORCE_JOIN_CHANNELS = [
-    FORCE_JOIN_CHANNELS = [
     {
         "id": "@anogenic",
         "link": "https://t.me/anogenic",
