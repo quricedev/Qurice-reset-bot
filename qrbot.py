@@ -258,11 +258,15 @@ def qr_handler(message):
     bg_file = user.get("bg_file_id") or get_global_bg()
     qr_img = generate_qr(user["upi_id"], amount, bg_file)
 
-    markup_btn = types.InlineKeyboardMarkup()
-    upi_btn = types.InlineKeyboardButton("💰 Tap to Pay", url=f"upi://pay?pa={user['upi_id']}&am={amount}&cu=INR")
-    markup_btn.add(upi_btn)
-
-    bot.send_photo(message.chat.id, qr_img, caption=f"💳 QR for ₹{amount}", reply_markup=markup_btn)
+    # Send QR only (button removed)
+    bot.send_photo(
+        message.chat.id,
+        qr_img,
+        caption=(
+            f"💳 QR for ₹{amount}\n\n"
+            f"📲 Scan in any UPI app to pay"
+        )
+    )
     
     users_col.update_one(
         {"user_id": user["user_id"]},
@@ -270,6 +274,24 @@ def qr_handler(message):
     )
 
     log_qr_generation(user["user_id"], amount)
+
+@bot.message_handler(commands=['resetupi'])
+def reset_upi(message):
+    user_id = message.from_user.id
+    user = users_col.find_one({"user_id": user_id})
+
+    if not user:
+        bot.reply_to(message, "⚠️ You are not registered. Please use /start first.")
+        return
+
+    # Remove old UPI ID
+    users_col.update_one({"user_id": user_id}, {"$unset": {"upi_id": ""}})
+    
+    bot.reply_to(
+        message,
+        "🔄 Your UPI ID has been cleared.\n"
+        "⚠️ Please set a new one using /setupi {your_upi_id}"
+    )
 
 
 @bot.message_handler(commands=['setbg'])
